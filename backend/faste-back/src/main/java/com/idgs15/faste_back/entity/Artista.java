@@ -26,7 +26,7 @@ public class Artista {
     private String pais;
     
     @Column(name = "fecha_nacimiento")
-    private LocalDate fechaNacimiento;
+    private String fechaNacimiento; // ✅ LocalDate
     
     @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro = LocalDateTime.now();

@@ -7,9 +7,11 @@ import com.idgs15.faste_back.repository.ArtistaRepository;
 import com.idgs15.faste_back.repository.UsuarioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -24,14 +26,14 @@ public class ArtistaController {
         this.usuarioRepository = usuarioRepository;
     }
     
-    // OBTENER TODOS LOS ARTISTAS
+    // ✅ CUALQUIER USUARIO AUTENTICADO (USER o ADMIN)
     @GetMapping
     public ResponseEntity<List<Artista>> getAllArtistas() {
         List<Artista> artistas = artistaRepository.findAll();
         return ResponseEntity.ok(artistas);
     }
     
-    // OBTENER ARTISTA POR ID
+    // ✅ CUALQUIER USUARIO AUTENTICADO
     @GetMapping("/{id}")
     public ResponseEntity<Artista> getArtistaById(@PathVariable Integer id) {
         return artistaRepository.findById(id)
@@ -39,26 +41,27 @@ public class ArtistaController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    // CREAR ARTISTA
+    // ❌ SOLO ADMIN - Crear artista
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> createArtista(@RequestBody ArtistaRequest request, Authentication auth) {
-        // Verificar si ya existe
         if (artistaRepository.existsByNombre(request.getNombre())) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, "El artista ya existe en la base de datos"));
         }
         
-        // Obtener usuario autenticado
         String email = auth.getName();
         var usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         
-        // Crear artista
         Artista artista = new Artista();
         artista.setNombre(request.getNombre());
         artista.setBio(request.getBio());
         artista.setImagenUrl(request.getImagenUrl());
         artista.setPais(request.getPais());
+        if (request.getFechaNacimiento() != null && !request.getFechaNacimiento().isEmpty()) {
+            artista.setFechaNacimiento(request.getFechaNacimiento());
+        }
         artista.setUsuarioCreadorId(usuario.getId());
         artista.setActivo(true);
         
@@ -66,8 +69,9 @@ public class ArtistaController {
         return ResponseEntity.ok(new ApiResponse(true, "Artista creado exitosamente"));
     }
     
-    // ACTUALIZAR ARTISTA
+    // ❌ SOLO ADMIN - Actualizar artista
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> updateArtista(@PathVariable Integer id, 
                                                       @RequestBody ArtistaRequest request) {
         return artistaRepository.findById(id)
@@ -82,20 +86,18 @@ public class ArtistaController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    // ELIMINAR ARTISTA (DELETE FÍSICO - BORRA DE LA BD)
+    // ❌ SOLO ADMIN - Eliminar artista
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> deleteArtista(@PathVariable Integer id) {
         if (!artistaRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
-        
-        // ✅ BORRAR FÍSICAMENTE DE LA BD
         artistaRepository.deleteById(id);
-        
         return ResponseEntity.ok(new ApiResponse(true, "Artista eliminado permanentemente"));
     }
     
-    // BUSCAR ARTISTA POR NOMBRE
+    // ✅ CUALQUIER USUARIO AUTENTICADO
     @GetMapping("/buscar")
     public ResponseEntity<Artista> buscarPorNombre(@RequestParam String nombre) {
         return artistaRepository.findByNombre(nombre)

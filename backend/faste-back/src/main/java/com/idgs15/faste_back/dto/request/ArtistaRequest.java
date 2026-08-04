@@ -8,4 +8,5 @@ public class ArtistaRequest {
     private String bio;
     private String imagenUrl;
     private String pais;
+    private String fechaNacimiento; // ✅ String para recibir formato "1907-07-06"
 }
