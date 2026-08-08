@@ -98,4 +98,42 @@ public class RetoController {
         retoRepository.deleteById(id);
         return ResponseEntity.ok(new ApiResponse(true, "Reto eliminado"));
     }
+
+    // ===== SELECCIONAR RETO (USER) =====
+        @PostMapping("/seleccionar/{retoId}")
+        public ResponseEntity<ApiResponse> seleccionarReto(
+                @PathVariable Integer retoId,
+                Authentication auth) {
+
+            String email = auth.getName();
+            var usuario = usuarioRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            // Verificar que el reto existe
+            if (!retoRepository.existsById(retoId)) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "El reto no existe"));
+            }
+
+            // Verificar si ya tiene reto asignado para hoy
+            var retoExistente = retoDiarioRepository.findByUsuarioIdAndFechaAsignacion(
+                    usuario.getId(), LocalDate.now());
+
+            if (retoExistente.isPresent()) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "Ya tienes un reto asignado para hoy"));
+            }
+
+            // Crear reto diario
+            com.idgs15.faste_back.entity.RetoDiario retoDiario = new com.idgs15.faste_back.entity.RetoDiario();
+            retoDiario.setRetoId(retoId);
+            retoDiario.setUsuarioId(usuario.getId());
+            retoDiario.setFechaAsignacion(LocalDate.now());
+            retoDiario.setCompletado(false);
+
+            retoDiarioRepository.save(retoDiario);
+
+            return ResponseEntity.ok(new ApiResponse(true, "Reto seleccionado exitosamente"));
+        }
+
 }

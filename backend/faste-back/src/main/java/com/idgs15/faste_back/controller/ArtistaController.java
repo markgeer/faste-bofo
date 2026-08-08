@@ -3,8 +3,10 @@ package com.idgs15.faste_back.controller;
 import com.idgs15.faste_back.dto.request.ArtistaRequest;
 import com.idgs15.faste_back.dto.response.ApiResponse;
 import com.idgs15.faste_back.entity.Artista;
+import com.idgs15.faste_back.entity.Obra;
 import com.idgs15.faste_back.repository.ArtistaRepository;
 import com.idgs15.faste_back.repository.UsuarioRepository;
+import com.idgs15.faste_back.repository.ObraRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,10 +22,12 @@ public class ArtistaController {
     
     private final ArtistaRepository artistaRepository;
     private final UsuarioRepository usuarioRepository;
-    
-    public ArtistaController(ArtistaRepository artistaRepository, UsuarioRepository usuarioRepository) {
+    private final ObraRepository obraRepository;
+
+    public ArtistaController(ArtistaRepository artistaRepository, UsuarioRepository usuarioRepository, ObraRepository obraRepository) {
         this.artistaRepository = artistaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.obraRepository = obraRepository;
     }
     
     // ✅ CUALQUIER USUARIO AUTENTICADO (USER o ADMIN)
@@ -66,7 +70,8 @@ public class ArtistaController {
         artista.setActivo(true);
         
         artistaRepository.save(artista);
-        return ResponseEntity.ok(new ApiResponse(true, "Artista creado exitosamente"));
+        // ✅ DEVOLVER EL ID DEL ARTISTA CREADO
+        return ResponseEntity.ok(new ApiResponse(true, "Artista creado exitosamente", artista.getId()));
     }
     
     // ❌ SOLO ADMIN - Actualizar artista
@@ -103,5 +108,30 @@ public class ArtistaController {
         return artistaRepository.findByNombre(nombre)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ===== ASIGNAR OBRA A ARTISTA (SOLO ADMIN) =====
+    @PostMapping("/{id}/obras")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse> asignarObra(
+            @PathVariable Integer id,
+            @RequestBody Obra obra,
+            Authentication auth) {
+
+        // Verificar que el artista existe
+        if (!artistaRepository.existsById(id)) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "El artista no existe"));
+        }
+
+        String email = auth.getName();
+        var usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        obra.setArtistaId(id);
+        obra.setUsuarioCreadorId(usuario.getId());
+
+        obraRepository.save(obra);
+        return ResponseEntity.ok(new ApiResponse(true, "Obra asignada al artista exitosamente"));
     }
 }
