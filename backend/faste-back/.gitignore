@@ -33,3 +33,7 @@ build/
 .vscode/
 
 .env
+
+*.zip hs_err_pid
+*.log replay_pid
+*.log
