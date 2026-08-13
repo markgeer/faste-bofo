@@ -6,7 +6,6 @@
 
 -  **Museo Digital**: Galería de artistas con perfiles y obras
 -  **Generador de Retos**: Desafíos diarios para estimular la creatividad
--  **Tracker de Tiempo**: Control de sesiones de trabajo
 -  **Wearable Companion**: Widget para smartwatch que muestra el reto activo
 
 ## Tecnologías
@@ -28,6 +27,5 @@
 ### DevOps
 - Git/GitHub
 - Vercel (Frontend)
-- Render/Railway (Backend)
+- Render (Backend)
 
-##  Estructura del Proyecto
